@@ -11,6 +11,7 @@ Documentation
 
 In addition to the documentation in this README, the following blogs also cover the library.
 
+- [Automating the Creation of Flow Screens with Apex Metadata API](http://andyinthecloud.com/2015/11/28/automating-the-creation-of-flow-screens-with-apex-metadata-api/)
 - [Apex Metadata API Q&A](http://andyinthecloud.com/2014/11/22/apex-metadata-api-qa/)
 - [Apex Metadata API Streamlined and Simplified for Summer’14](http://andyinthecloud.com/2014/08/14/apex-metadata-api-streamlined-and-simplified-for-summer14/)
 - [Post Install Apex Metadata API Configuration Solved!](http://andyinthecloud.com/2014/07/29/post-install-apex-metadata-api-configuration-solved/)
@@ -23,7 +24,7 @@ In addition to the documentation in this README, the following blogs also cover 
 
 This API mirrors as much as possible the API types and operations described in the standard documentation. The behaviour and functionality provided is also as described in the Salesforce documentation, in terms of what metadata is available and accessable via the specific operations.
 
-- [Salesforce Metadata API Developers Guide](http://www.salesforce.com/us/developer/docs/api_meta/index.htm)
+- [Salesforce Metadata API Developers Guide](https://developer.salesforce.com/docs/atlas.en-us.api_meta.meta/api_meta/)
 
 Showcase
 --------
@@ -38,12 +39,12 @@ Background and Motivation
 
 There seems to be a growing number of Apex developers wanting to develop solutions or just handy utils that embrace the declarative nature of the platform. Including those in FinancialForce.com for that matter! Such solutions are dynamically adapting to custom fields or objects that need to be created by the administrator and/or customisations to objects in existing packages.
 
-As adminstrators leverage more and more of these solutions the topic of automation arises. Can the developers of these solutions help the adminstrator by implementing wizards or self configuring solutions without asking the adminstrator to create these manually and then have to reference them back into the solution?
+As administrators leverage more and more of these solutions the topic of automation arises. Can the developers of these solutions help the administrator by implementing wizards or self configuring solutions without asking the administrator to create these manually and then have to reference them back into the solution?
 
 Strategies for calling from Apex
 --------------------------------
 
-Salesforce provides a great number of API's for developers to consume, both off and on platform (as Apex developers). If you happen to be off platform (say in Heroku) and developing code to help automate adminstration. Then you can utilise the Salesforce Metadata API (via the Salesforce WebService Connector) to help with this. It is a robust and readily available API for creating objects, fields, pages and many other component types.
+Salesforce provides a great number of API's for developers to consume, both off and on platform (as Apex developers). If you happen to be off platform (say in Heroku) and developing code to help automate administration. Then you can utilise the Salesforce Metadata API (via the Salesforce WebService Connector) to help with this. It is a robust and readily available API for creating objects, fields, pages and many other component types.
 
 While Salesforce offers on platform Apex developers a means to query some of this information (a subset of the Metadata API coverage) via Apex Describe, it does not as yet provide a means to manipulate this metadata from Apex natively. We are told this is in the pipeline, though I am personally not aware of when this will arrive.
 
@@ -234,6 +235,7 @@ Known Issues and Resolutions
 ----------------------------
 
 - If you recieve the error message *'Insufficient access; cannot execute Metadata operation with PAC enabled session id'* within Apex code within a managed package utilising this library. Please ensure to changed the API access from Restricted to Unrestricted on your Package definition. Many thanks to the great work from [vipulpahwa](https://github.com/vipulpahwa) and [Daniel Blackhall](https://github.com/seeflat) to getting to the bottom of this rather cryptic error message.
+- If you receive the error messag *'System.CalloutException: IO Exception: Read timed out'* then take a look at this excellent resolution to the problem [here](https://github.com/financialforcedev/apex-mdapi/issues/77).
 
 How to call the Salesforce Metadata API from Apex
 -------------------------------------------------
@@ -252,6 +254,21 @@ One option is to download the Metadata WSDL from the Tools page under the Develo
 
 I've created this Github repo to capture a modified version of the generated Apex class around the Metadata API, which addresses the problems above so that you can download it and get started straight away.
 
+Remote Site Settings are a must; the tool can help!
+---------------------------------------------------
+A recent contribution has taken much of the work that was done in the [DLRS Tool](https://github.com/afawcett/declarative-lookup-rollup-summaries) for automating the creation of a remote site setting and turned it into a visualforce component that is easily extensible for anyone needing a remote site setting created. See the [remotesitepage.page](https://github.com/financialforcedev/apex-mdapi/blob/master/apex-mdapi/src/pages/remotesitepage.page) as well as the [remotesitehelper.component](https://github.com/financialforcedev/apex-mdapi/blob/master/apex-mdapi/src/components/remotesitehelper.component) for full code. In short, this page will automatically detect if the salesforce instance you're using can access the metadata api; and if it cannot access, it gives you the ability to specify the remote site setting you want, and automatically populate the correct url. It also allows you to have a simple "welcome style" page that has some fanciness. Here are the component parameters:
+- rssName="mdapi"
+- rssDescription="SFDC to SFDC metadata api."
+- pageOverview="This is an awesome overview of my tool."
+- pageOverviewLinkURL="http://google.com"
+- pageOverviewLinkText="Google This tool!"
+- pageSectionTitle="My Awesome Package Welcome Page"
+- pageSectionSubTitle="Welcome"
+- pageImageURL="http://someurltoanimage.com/image.png"
+
+Here is what the page will look like with the above configuration.
+![Demo Screenshot](https://raw.githubusercontent.com/financialforcedev/apex-mdapi/master/images/remotesitehelper.png)
+
 How to create your own MetadataService.cls
 ------------------------------------------
 
@@ -260,6 +277,10 @@ How to create your own MetadataService.cls
      - Generating a valid Apex MetadataService class
           - Download and edit the WSDL
                - Change the Port name from 'Metadata' to 'MetadataPort'
+               - Add displayLocationInDecimal to the CustomField definition.
+                 <xsd:element name="displayLocationInDecimal" minOccurs="0" type="xsd:boolean"/>
+               - Add gracePeriodDays to the HistoryRetentionPolicy definition.
+                 <xsd:element name="gracePeriodDays" type="xsd:int"/>
                - Locate the CustomMetadataValue complextype, change the type of the 'value' element to 'xsd:string'
                - Locate the FieldValue complextype, change the type of the 'value' element to 'xsd:string'
           - Generate Apex from this WSDL
@@ -276,6 +297,7 @@ How to create your own MetadataService.cls
                - Open the MetadataServicePatched Document and copy the code          
                - Paste the code over the current or new MetadataService.cls class 
                    (recommend MavensMate for this as the file is some 8000+ lines long)
+               - Check for any left over references to MetadataServiceImported in MetadataService and change them to MetadataService
           - Update MetadataServiceTest.cls
                - See this for guidelines http://andyinthecloud.com/2013/05/11/code-coverage-for-wsdl2apex-generated-classes
                - Future releases of the patch script may also generate this class
@@ -285,6 +307,21 @@ How to create your own MetadataService.cls
 
 Release History
 ---------------
+
+**Update: 25th June 2016:**
+- Updated to Summer'16 v37.0 Metadata API
+
+**Update: 17th April 2016:**
+- Updated to Spring'16 v36.0 Metadata API
+
+**Update: 2nd Nov 2015:**
+- Updated to Winter'16 v35.0 Metadata API
+
+**Update: 4th May 2015:**
+- Created new Remote Site Helper Page.
+
+**Update: 7th April 2015:**
+- Updated to **Spring'15 Metadata API (v33.0)**
 
 **Update: 20th November 2014:**
 - Updated to **Winter'15 Metadata API (v32.0)**
